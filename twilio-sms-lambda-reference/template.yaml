@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sample SAM Template for twilio-sms-lambda-reference
+
+Globals:
+  Function:
+    Timeout: 8
+
+Resources:
+  SmsEchoApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: ./api.yaml
+
+  SmsEchoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: sms_echo/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          TWILIO_AUTH_TOKEN_SECRET: !GetAtt TwilioAuthToken.Id
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !GetAtt TwilioAuthToken.Id
+              # Events:
+              #   SmsEcho:
+              #     Type: Api
+              #     Properties:
+              #       Path: /echo
+              #       Method: post
+
+  SmsEchoFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SmsEchoFunction
+      Principal: apigateway.amazonaws.com
+
+  TwilioAuthToken:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AWS::StackName}-twilio-auth-token'
+
+Outputs:
+  ApiEndpoint:
+    Description: 'API Gateway endpoint URL for Prod stage for SMS Echo function'
+    Value: !Sub 'https://${SmsEchoApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/echo/'
+  FunctionArn:
+    Description: 'SMS Echo Lambda Function ARN'
+    Value: !GetAtt SmsEchoFunction.Arn
+  FunctionRole:
+    Description: 'Implicit IAM Role created for SMS Echo function'
+    Value: !GetAtt SmsEchoFunctionRole.Arn

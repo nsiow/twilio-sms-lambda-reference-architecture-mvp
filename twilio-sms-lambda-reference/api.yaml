@@ -1,0 +1,54 @@
+openapi: 3.0.1
+info:
+  title: twilio_sns_lambda_reference
+  version: '2023-08-13T19:25:09Z'
+paths:
+  /echo:
+    post:
+      responses:
+        '200':
+          description: 200 response
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Empty'
+      x-amazon-apigateway-integration:
+        type: aws
+        httpMethod: POST
+        uri:
+          Fn::Sub:
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SmsEchoFunction.Arn}/invocations
+            - {}
+        responses:
+          default:
+            statusCode: '200'
+            responseTemplates:
+              application/xml: $input.path('$')
+        requestTemplates:
+          application/x-www-form-urlencoded: |-
+            {
+              "params": {
+                #set($httpPost = $input.path('$').split("&"))
+                #foreach( $kvPair in $httpPost )
+                 #set($kvTokenized = $kvPair.split("="))
+                 #if( $kvTokenized.size() > 1 )
+                   "$util.urlDecode($kvTokenized[0])" : "$util.urlDecode($kvTokenized[1])"#if( $foreach.hasNext ),#end
+                 #else
+                   "$util.urlDecode($kvTokenized[0])" : ""#if( $foreach.hasNext ),#end
+                 #end
+                #end
+              },
+              "headers": {
+                #foreach($param in $input.params().header.keySet())
+                "$param": "$util.escapeJavaScript($input.params().header.get($param))"
+                #if($foreach.hasNext),#end
+                #end
+              }
+            }
+        passthroughBehavior: when_no_templates
+        contentHandling: CONVERT_TO_TEXT
+components:
+  schemas:
+    Empty:
+      title: Empty Schema
+      type: object
