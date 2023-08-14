@@ -25,6 +25,7 @@ def lambda_handler(event, context):
 
     # Respond with echo
     body = params['Body']
+    print('Received message: ' + body)
     resp = MessagingResponse()
     resp.message(f'echo: {body}')
     return str(resp)
