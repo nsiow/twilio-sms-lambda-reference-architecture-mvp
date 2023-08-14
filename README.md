@@ -58,6 +58,7 @@ previously:
 
 With this, everything should be in place to test things out. Send an SMS to your Twilio-registered
 number and if all is well, you will receive a response!
+
 ![sms-echo](./images/sms-echo.png)
 
 ## Notes
